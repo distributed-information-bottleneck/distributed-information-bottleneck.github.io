@@ -2,6 +2,17 @@
 <html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 <link rel="preconnect" href="https://fonts.gstatic.com">
 <link href="https://fonts.googleapis.com/css2?family=Open+Sans&display=swap" rel="stylesheet">
+<!-- <script type="text/x-mathjax-config">
+  MathJax = {
+    tex: {
+      inlineMath: [['$', '$'], ["\\(", "\\)"]],
+      processEscapes: true,
+    }
+  }
+</script> -->
+<script type="text/javascript" id="MathJax-script" async
+  src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js">
+</script>
 <title>
 Distributed IB
 </title>
@@ -14,39 +25,143 @@ Distributed IB
 <div class="container">
   <p>&nbsp;</p>
   <p><span class="title">Where is the information in data?</span></p>
+  <br>
   <table border=0 align="center" class="authors">
     <tbody><tr align="center">
-      <td><a href="https://scholar.google.com/citations?user=VC653zEAAAAJ&hl=en">Kieran A. Murphy</a></td>
+      <td><a href="https://kieranamurphy.com">Kieran A. Murphy</a></td>
       <td><a href="https://complexsystemsupenn.com/personal">Dani S. Bassett</a></td>
     </tr>
-  </tbody></table>
+  </tbody>
+</table>
+<p align="center" style="font-size: 16px">University of Pennsylvania</p>
+<br>
+<p align="center">
+How to use the Distributed Information Bottleneck for interpretable machine learning, to decompose a relationship in data into comprehensible approximations, and to track the flow of information in a system.
+</p>
+<br><br>
+<table width=999 border=0>
+    <tbody>
+      <tr>
+        <td align="center"> <a href="https://distributed-information-bottleneck.github.io/#papers">Papers</a> |
+         <a href="https://distributed-information-bottleneck.github.io/#code">Code</a> |
+         <a href="https://distributed-information-bottleneck.github.io/#overview">Method overview</a>
+       </td>
+      </tr>
+    </tbody>
+  </table>
+
+<p><span class="section", id="papers">Papers</span></p>
+  <table border=0>
+    <tbody>
+      <tr>
+        <td align="center"><a href="https://arxiv.org/abs/2204.07576"><img src="./website_files/monalisa.gif" alt="Animation of Mona Lisa painting approximations that decrease in fidelity" height="300"></a></td>
+        <td> <a href="https://arxiv.org/abs/2204.07576">The Distributed Information Bottleneck reveals the explanatory structure of complex systems [arxiv]</a>
+      </tr>
+      <tr>
+        <td align="center"><a href="https://arxiv.org/abs/XXXX.XXXXX"><img src="./website_files/pendy_anim.gif" alt="Animation of a double pendulum swinging around chaotically" height="300"></a></td>
+        <td> <a href="https://arxiv.org/abs/XXXX.XXXXX">Characterizing information loss in a chaotic double pendulum with the Information Bottleneck [arxiv]</a>
+        	<br> <br>
+        	(NeurIPS 2022 workshop <a href="https://ml4physicalsciences.github.io/2022/">"Machine learning and the physical sciences"</a>)
+      </tr>
+    </tbody>
+  </table>
   <br>
-  <table width=999 border=0>
 
   <p><span class="section", id="code">Code</span></p>
   <table border=0>
     <tbody>
       <tr>
-        <td width=60><a href="https://github.com/google-research/google-research/tree/master/implicit_pdf"><img src="./ipdf_files/github.png" alt="" height="50"></a></td>
-        <td align="left"><a href="https://github.com/google-research/google-research/tree/master/implicit_pdf">Code</a> is now available on github!</td>
+        <td width=60><a href="https://github.com/distributed-information-bottleneck/distributed-information-bottleneck.github.io"><img src="./website_files/github_logo.png" alt="github logo" height="50"></a></td>
+        <td align="left"><a href="https://github.com/distributed-information-bottleneck/distributed-information-bottleneck.github.io">Code</a> is available on github!</td>
       </tr>
     </tr>
     </tbody>
   </table>
   <br>
 
-  <p><span class="section", id="data">Chaos</span></p>
-  <table border=0>
+<p><span class="section", id="overview">Method overview</span></p>
+<p><b><u>TL;DR</u> Introduce a penalty on information used about each component of the input. Now you can see where the important information is.</b></p>
+
+<p>We are interested in the relationship between two random variables \(X\) and \(Y\), which we'll call the input and output.  We assume \(X\) is composite: there are components \(\{X_i\}\) that are measured together, that can have arbitrarily complex interaction effects with respect to the outcome of \(Y\).</p>
+
+<center><figure>
+  <img src="./website_files/interaction_schematic.svg" src="./website_files/interaction_schematic.svg" alt="Illustration of components of X interacting as a network culminating in Y" height="250">
+  <figcaption style="color: #7e94a0">The components of \(X\) can have complex interaction effects with respect to the outcome of \(Y\).</figcaption>
+</figure></center>
+
+<p>This setting is ubiquitous. Some examples we have investigated:</p>
+<table border=0 style="border-spacing: 15px;">
     <tbody>
       <tr>
-        <td>Now live on <a href="https://www.tensorflow.org/datasets/catalog/symmetric_solids">Tensorflow Datasets</a>!</td>
+        <td style="text-align: center">\(\{X_i\}\)</td>
+        <td style="text-align: center">\(Y\)</td>
       </tr>
       <tr>
-        <td><img src="./website_files/pendy_dib.svg", alt="", width=400></td>
-      </tr>
-    </tbody>
-  </table>
+        <td style="background-color: #f4eded; "><ul style="margin-right: 10px">
+        		<li>Density variations describing local structure in a glassy material</li>
+        		<li>Horizontal and vertical coordinates of position in an image</li>
+        		<li>Angles, velocities for arms of a double pendulum</li>
+        		<li>Stats for a hospital patient such as age, temperature, and P/F ratio </li>
+        		<li>Measurements of a sample of red wine</li>
+
+
+        		</ul></td>
+        <td style="background-color: #f4eded;"><ul style="margin-right: 10px">
+        		<li>Whether that part of the material is about to rearrange</li>
+        		<li>Color at that point in the image</li>
+        		<li>Future state of double pendulum</li>
+        		<li>Outcome of treatment </li>
+        		<li>Rating of the wine</li>
+
+        		</ul></td>
+    </tr>
+	</tbody>
+</table>
+
+<p>Given data of \(X\) and \(Y\), the typical route a machine learning practitioner takes is to fit a deep neural network to predict \(Y\) given \(X\). The resulting model is incomprehensible, however, granting predictive power without insight.</p>
+
+<center><figure>
+	<img src="./website_files/ml_schematic.svg" alt="Schematic of components of X feeding into a neural network to predict Y" height="230">
+	<figcaption style="color: #7e94a0">Typical machine learning setup: just feed it all in.</figcaption>
+</figure></center>
+
+<p>What we propose is to add a penalty during training: the model has to pay for every bit of information used about any of the \(\{X_i\}\).  This has two powerful consequences: 1) The most predictive information is found, revealing the essential parts of the relationship, and 2) We gain a means to control the amount of information used by the machine learning model, yielding a spectrum of approximate relationships that serves as a soft on-ramp to understanding the relationship between \(X\) and \(Y\).</p>
+
+<p>Schematically it looks like the following:</p>
+
+<center><figure>
+	<img src="./website_files/dib_schematic.svg" alt="Schematic of components of X encoded by their own neural networks, then combined to predict Y" height="230">
+	<figcaption style="color: #7e94a0">Distributing information bottlenecks to the features: one encoder and an information penalty each, then integrate all the information for prediction.</figcaption>
+</figure></center>
+
+<p>Each component \(X_i\) is compressed independently of the rest by its own encoder.  The amount of information in the encodings is penalized in the same way as a Variational Autoencoder (VAE). All encodings \(\{U_i\}\) are then aggregated and used to predict \(Y\).</p>
+
+<p>We track the flow of information from the components by varying the information alloted to the machine learning model. Shown below is one example: a Boolean circuit with 10 binary inputs routing through various logic gates to produce the output \(Y\).</p>
+<center><figure>
+	<img src="./website_files/circuit.svg" alt="Boolean circuit with 10 inputs routing through multiple logic gates to produce output Y. Plot showing the information allocation to the input components found by the distributed information bottleneck method." height="330">
+	<figcaption style="color: #7e94a0">Reverse engineering a Boolean circuit by tracking information about the inputs.</figcaption>
+</figure></center>
+
+<p>By training with the Distributed IB on input-output data we find the most informative input gate is number 3 (green), followed by number 10 (cyan), and so on. As more information is used by the machine learning model, its predictive power grows until it uses information from all 10 input gates.</p>
+
+<br> <br>
+  
 
 <p><span class="section", id="bibtex">Bibtex</span></p>
+If you find any of this useful for your research, please cite the most appropriate of the following:
+<pre>
+@article{DIBComplexSystems2022,
+  title={The Distributed Information Bottleneck reveals the explanatory structure of complex systems},
+  author={Murphy, Kieran A. and Bassett, Dani S.},
+  journal={arXiv preprint arXiv:2204.07576},
+  year={2022}
+}
+@article{DIBChaos2022,
+  title={Characterizing information loss in a chaotic double pendulum with the Information Bottleneck},
+  author={Murphy, Kieran A. and Bassett, Dani S.},
+  journal={arXiv preprint arXiv:XXX.XXXX},
+  year={2022}
+}
+</pre>
 
 </body></html>

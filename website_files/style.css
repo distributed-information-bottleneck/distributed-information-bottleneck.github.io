@@ -33,7 +33,7 @@ body {
 
 .title {
 	font: "Google Sans";
-	font-size: 150%;
+	font-size: 200%;
 	font-weight: bold;
 	display: block;
 	text-align: center;
@@ -44,7 +44,7 @@ body {
 
 table.authors td {
 	font: "Google Sans";
-	font-size: 16px;
+	font-size: 20px;
 	padding-right: 10px;
 	padding-left: 10px;
 	padding-bottom: 5px;
@@ -82,3 +82,14 @@ table.data td {
 	padding-bottom: 5px;
 	vertical-align: top;
 } 
+
+a:link { text-decoration: none; }
+
+
+a:visited { text-decoration: none; }
+
+
+a:hover { text-decoration: none; }
+
+
+a:active { text-decoration: none; }
