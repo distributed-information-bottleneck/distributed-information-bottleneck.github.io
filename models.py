@@ -1,7 +1,8 @@
 """
 Models:
 - The positional encoding layer for puffing out the inputs to help with training
-- An implementation of the distributed IB
+- Distributed IB implementation
+- Keras callback to anneal the value of \beta (the bottleneck strength)
 """
 
 import tensorflow as tf
@@ -23,6 +24,33 @@ class PositionalEncoding(tf.keras.layers.Layer):
 
 class DistributedMLP(tf.keras.Model):
   """Distributed IB implementation where each feature is passed through an MLP
+
+  Args:
+    feature_dimensionalities: List of ints specifying the dimension of each feature.
+      E.g. if the first feature is just a scalar and the second is a one-hot with 4 values, 
+      the feature_dimensionalities should be [1, 4].
+    encoder_architecture: List of ints specifying the number of units in each layer of the 
+      feature encoders. E.g. [64, 128] specifies that each feature encoder has 64 units in 
+      the first layer and 128 in the second.
+    integration_network_architecture: List of ints specifying the architecture of the MLP that
+      integrates all of the feature embeddings into a prediction.
+    output_dimensionality: Int specifying the dimensionality of the output. If the task is 
+      scalar regression, output_dimensionality=1; if it's classification, 
+      output_dimensionality=number_classes; etc.
+    use_positional_encoding: Boolean specifying whether to preprocess each feature with a 
+      positional encoding layer.  Helps with training when using low-dimensional features.
+      Default: True.
+    positional_encoding_frequencies: List of floats specifying the frequencies to use in the
+      positional encoding layer.
+      Default: a few powers of 2, which we found to work well across the board.
+    activation_fn: The activation function to use in the feature encoders and integration
+      network, with the exception of the output layer.
+      Default: relu.
+    feature_embedding_dimension: Int specifying the embedding space dimensionality for each
+      feature. 
+      Default: 32.
+    output_activation_fn: The activation function for the output. 
+      Default: None.
   """
   def __init__(self, 
     feature_dimensionalities,
@@ -62,7 +90,11 @@ class DistributedMLP(tf.keras.Model):
     self.integration_network.build()
     return
 
-  def call(self, inputs, training=None):  # Defines the computation from inputs to outputs
+  def call(self, inputs, training=None):
+    # Encode each feature into a Gaussian in embedding space
+    # Evaluate the KL divergence of the Gaussian from the unit normal Gaussian (the prior)
+    # Sample from the Gaussian for the reparameterization trick
+    # Gather the samples from all the features, and pass through the integration network for the final prediction
     features_split = tf.split(inputs, self.feature_dimensionalities, axis=-1)
 
     feature_embeddings, kl_divergence_channels = [[], []]
@@ -75,24 +107,42 @@ class DistributedMLP(tf.keras.Model):
         emb_channeled = emb_mus
 
       feature_embeddings.append(emb_channeled)
-      kl_divergence_channels.append(tf.reduce_mean(tf.reduce_sum(0.5 * (tf.square(emb_mus) + tf.exp(emb_logvars) - emb_logvars - 1.), axis=-1)))
+      kl_divergence_channel = tf.reduce_mean(
+        tf.reduce_sum(0.5 * (tf.square(emb_mus) + tf.exp(emb_logvars) - emb_logvars - 1.), axis=-1))
+      kl_divergence_channels.append(kl_divergence_channel)
+      # Add a metric to track the KL divergence per feature over the course of training, since it's not automatic
+      self.add_metric(kl_divergence_channel, name=f'KL{feature_ind}')
 
+    # This is the bottleneck: a loss contribution based on the total KL across channels (one per feature)
     self.add_loss(self.beta*tf.reduce_sum(kl_divergence_channels))
-    self.add_metric(kl_divergence_channels, name='KL')
+
+    # Add another metric to store the value of the bottleneck strength \beta over training
     self.add_metric(self.beta, name='beta')
     prediction = self.integration_network(tf.concat(feature_embeddings, -1))
     return prediction
 
 class InfoBottleneckAnnealingCallback(tf.keras.callbacks.Callback):
+  """Callback to logarithmically increase beta during training.
+
+  Args:
+    beta_start: The value of beta at the start of annealing.
+    beta_end: The value of beta at the end of annealing.
+    number_pretraining_epochs: The number of epochs to hold beta=beta_start
+      at the beginning of training.
+    number_annealing_epochs: The number of epochs to logarithmically ramp beta from
+      beta_start to beta_end.
+  """
+
   def __init__(self, 
                beta_start,
                beta_end,
-               number_pretraining_steps,
-               number_annealing_steps):
+               number_pretraining_epochs,
+               number_annealing_epochs):
     super(InfoBottleneckAnnealingCallback, self).__init__()
     self.beta_start = beta_start
     self.beta_end = beta_end 
-    self.number_pretraining_steps = number_pretraining_steps
-    self.number_annealing_steps = number_annealing_steps
+    self.number_pretraining_epochs = number_pretraining_epochs
+    self.number_annealing_epochs = number_annealing_epochs
   def on_epoch_begin(self, epoch, logs=None):
-    self.model.beta.assign(tf.exp(tf.math.log(self.beta_start)+tf.cast(max(epoch-self.number_pretraining_steps, 0), tf.float32)/self.number_annealing_steps*(tf.math.log(self.beta_end)-tf.math.log(self.beta_start))))
+    self.model.beta.assign(tf.exp(tf.math.log(self.beta_start)+
+      tf.cast(max(epoch-self.number_pretraining_epochs, 0), tf.float32)/self.number_annealing_epochs*(tf.math.log(self.beta_end)-tf.math.log(self.beta_start))))

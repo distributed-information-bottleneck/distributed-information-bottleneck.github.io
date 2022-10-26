@@ -6,6 +6,7 @@ import scipy.ndimage as nim
 import tensorflow as tf
 
 import utils
+import models
 
 data_dir = './double_pendulum_simulation_data'
 outdir = './double_pendulum_training_artifacts'
@@ -88,7 +89,7 @@ for time_delta in time_deltas_to_train_on:
 	print(f'Starting IB run for double pendulum with time delta = {time_delta}s aka {time_delta_timesteps} frames')
 
 	## An encoder for the input state -> bottleneck space
-	combined_component_encoder = tf.keras.Sequential([tf.keras.layers.Input((num_components_unrolled)), utils.PositionalEncoding(positional_encoding_frequencies)] + 
+	combined_component_encoder = tf.keras.Sequential([tf.keras.layers.Input((num_components_unrolled)), models.PositionalEncoding(positional_encoding_frequencies)] + 
                             [tf.keras.layers.Dense(num_units, activation_fn) for num_units in input_state_encoder_arch_spec] + 
                             [tf.keras.layers.Dense(2*bottleneck_space_dimensionality)])
 	all_trainable_vars = combined_component_encoder.trainable_variables
@@ -100,7 +101,7 @@ for time_delta in time_deltas_to_train_on:
 	all_trainable_vars += enc1.trainable_variables 
 
 	## An encoder for the future state -> InfoNCE space
-	enc2 = tf.keras.Sequential([tf.keras.layers.Input((num_components_unrolled)), utils.PositionalEncoding(positional_encoding_frequencies)] + 
+	enc2 = tf.keras.Sequential([tf.keras.layers.Input((num_components_unrolled)), models.PositionalEncoding(positional_encoding_frequencies)] + 
 	                          [tf.keras.layers.Dense(num_units, activation_fn) for num_units in shared_encoder_future_arch_spec] + 
 	                          [tf.keras.layers.Dense(infonce_space_dimensionality)])
 	all_trainable_vars += enc2.trainable_variables
