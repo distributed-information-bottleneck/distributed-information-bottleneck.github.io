@@ -7,7 +7,7 @@ from scipy.integrate import odeint
 import numpy as np
 import os
 
-data_dir = './simulation_data'
+data_dir = './double_pendulum_simulation_data'
 if not os.path.exists(data_dir):
   os.makedirs(data_dir)
 
