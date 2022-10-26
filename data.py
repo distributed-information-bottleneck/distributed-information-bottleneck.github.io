@@ -23,6 +23,6 @@ def load(dataset_name):
 		output_dimensionality=output_dimensionality,
 		output_activation_fn=output_activation_fn,
 		loss=loss,
-		loss_is_info_based='entropy' in loss,
+		loss_is_info_based=loss_is_info_based,
 		metrics=metrics,
 		)

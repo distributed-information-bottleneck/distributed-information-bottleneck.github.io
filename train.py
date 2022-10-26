@@ -125,7 +125,7 @@ def main():
   if dataset_dict['loss_is_info_based']:
   	loss_series /= np.log(2)  ## get the loss values in bits
 
-  visualization.save_distributed_info_plane(beta_series, kl_series, loss_series, outdir=args.outdir)
+  visualization.save_distributed_info_plane(beta_series, kl_series, loss_series, args.outdir)
 
 
 if __name__ == '__main__':
