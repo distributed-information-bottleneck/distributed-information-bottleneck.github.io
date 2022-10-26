@@ -7,6 +7,7 @@ Models:
 
 import tensorflow as tf
 import numpy as np
+import utils
 
 class PositionalEncoding(tf.keras.layers.Layer):
   """Simple positional encoding layer, that appends to an input sinusoids of multiple frequencies.
@@ -146,3 +147,36 @@ class InfoBottleneckAnnealingCallback(tf.keras.callbacks.Callback):
   def on_epoch_begin(self, epoch, logs=None):
     self.model.beta.assign(tf.exp(tf.math.log(self.beta_start)+
       tf.cast(max(epoch-self.number_pretraining_epochs, 0), tf.float32)/self.number_annealing_epochs*(tf.math.log(self.beta_end)-tf.math.log(self.beta_start))))
+
+
+class SaveDistinguishabilityMatricesCallback(tf.keras.callbacks.Callback):
+  """Callback to save distinguishability matrices during training.
+
+  Args:
+    save_frequency:
+    x_processed:
+    x_raw:
+    outdir:
+  """
+
+  def __init__(self, 
+               save_frequency,
+               x_processed,
+               x_raw,
+               outdir):
+    super(SaveDistinguishabilityMatricesCallback, self).__init__()
+    self.save_frequency = save_frequency
+    self.x_processed = x_processed 
+    self.x_raw = x_raw 
+    self.outdir = outdir
+
+  def on_epoch_end(self, epoch, logs=None):
+    if (epoch % self.save_frequency) == 0:
+      beta_value = self.model.beta.value()
+      log10_beta_value = np.log10(beta_value)
+      features_split = tf.split(self.x_processed, self.model.feature_dimensionalities, axis=-1)
+      for feature_ind in range(len(self.model.feature_dimensionalities)):
+        emb_mus, emb_logvars = self.model.feature_encoders[feature_ind](features_split[feature_ind])
+        distinguishabilitiy_matrix = utils.bhattacharyya_dist_mat_multivariate(emb_mus, emb_logvars, emb_mus, emb_logvars)
+        out_fname = f'feature_{feature_ind}_log10beta_{log10_beta_value:.3f}.png'
+        visualization.save_distinguishability_matrices(distinguishability_matrix, outdir, out_fname)

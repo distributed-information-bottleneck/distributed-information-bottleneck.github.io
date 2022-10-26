@@ -1,8 +1,7 @@
 """
 General utils: 
-- some functions for calculating similarities for InfoNCE
-- the Bhattacharyya calculation for quantifying the distinguishability of representations
-- The positional encoding layer for puffing out the inputs to help with training
+- Functions for calculating similarities for InfoNCE
+- The Bhattacharyya calculation for quantifying the distinguishability of representations
 """
 import tensorflow as tf
 import numpy as np
