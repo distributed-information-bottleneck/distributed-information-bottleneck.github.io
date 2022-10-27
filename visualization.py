@@ -2,8 +2,6 @@
 Visualization:
 - Distributed information plane
 - Distinguishability matrices from feature values
-
-Coming soon!
 """
 
 import os
@@ -15,6 +13,8 @@ def save_distinguishability_matrices(distinguishability_matrix, outdir, out_fnam
   plt.figure(figsize=(8, 8))
   saveto = os.path.join(outdir, out_fname)
   plt.savefig(saveto)
+  plt.clf()
+  return
 
 def save_distributed_info_plane(kl_series, loss_series, outdir, entropy_y=None):
 
@@ -47,6 +47,6 @@ def save_distributed_info_plane(kl_series, loss_series, outdir, entropy_y=None):
   
   saveto = os.path.join(outdir, 'distributed_info_plane.png')
   plt.savefig(saveto)
-  
-  plt.show()
+  plt.clf()
+  return
 

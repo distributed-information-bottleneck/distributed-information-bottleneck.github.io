@@ -1,7 +1,11 @@
-# Code to use the Distributed Information Bottleneck to localize information in data
+# Want to find where the information is in your data?
 
-The Distributed IB is just a probabilistic encoder for each feature, with a KL divergence penalty that we increase gradually over the course of training.
-It should look very familiar to anyone who has coded a VAE.
+## High level
+The [Distributed IB](https://distributed-information-bottleneck.github.io) treats each feature of your data -- whether that feature is the age of a person visiting the hospital, the humidity on a day in Washington, D.C., or the density of a particular radial shell in a glassy material -- as information to be communicated before being used in a predictive model.  We place a cost on the information and that has the effect of locating the most informative features, and even the most informative distinctions within each feature, for different levels of predictive accuracy.
+
+## Code overview
+In practice, the (variational) Distributed IB is a probabilistic encoder for each feature and a KL divergence penalty that we increase gradually over the course of training.
+Under the hood it looks very familiar to a VAE.
 
 For convenience, we have wrapped all the functionality into a `tf.keras.Model` subclass called `DistributedIBNet`. 
 `DistributedIBNet` can be used in the standard `tf.keras.model` ways, e.g. with `model.compile(...)` and `model.fit(...)`. 
@@ -10,6 +14,7 @@ The rest of the functionality is achieved through custom `keras` callbacks:
 - `InfoBottleneckAnnealingCallback` handles the logarithmic annealing of the bottleneck strength \beta
 - `SaveDistinguishabilityMatricesCallback` saves the feature value distinguishability matrices during training
 
+### Training example
 A full training run can be accomplished with the following:
 ```python
 model = DistributedIBNet(model_params)
