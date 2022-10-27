@@ -7,6 +7,7 @@ Models:
 
 import tensorflow as tf
 import numpy as np
+import utils
 
 class PositionalEncoding(tf.keras.layers.Layer):
   """Simple positional encoding layer, that appends to an input sinusoids of multiple frequencies.
@@ -22,7 +23,7 @@ class PositionalEncoding(tf.keras.layers.Layer):
     return tf.concat([inputs] + [tf.math.sin(frequency*inputs) for frequency in self.frequencies], -1)
 
 
-class DistributedMLP(tf.keras.Model):
+class DistributedIBNet(tf.keras.Model):
   """Distributed IB implementation where each feature is passed through an MLP
 
   Args:
@@ -63,8 +64,9 @@ class DistributedMLP(tf.keras.Model):
     feature_embedding_dimension=32,
     output_activation_fn=None,
     ):
-      super(DistributedMLP, self).__init__()
+      super(DistributedIBNet, self).__init__()
       self.feature_dimensionalities = feature_dimensionalities
+      self.number_features = len(feature_dimensionalities)
       feature_encoders = []
       for feature_dimensionality in feature_dimensionalities:
         feature_encoder_layers = [tf.keras.layers.Input((feature_dimensionality,))]
@@ -84,7 +86,7 @@ class DistributedMLP(tf.keras.Model):
 
   def build(self, input_shape):
     assert input_shape[-1] == np.sum(self.feature_dimensionalities)
-    for feature_ind in range(len(self.feature_dimensionalities)):
+    for feature_ind in range(self.number_features):
       self.feature_encoders[feature_ind].build(input_shape[:-1]+[self.feature_dimensionalities[feature_ind]])
 
     self.integration_network.build()
@@ -99,7 +101,7 @@ class DistributedMLP(tf.keras.Model):
 
     feature_embeddings, kl_divergence_channels = [[], []]
 
-    for feature_ind in range(len(self.feature_dimensionalities)):
+    for feature_ind in range(self.number_features):
       emb_mus, emb_logvars = tf.split(self.feature_encoders[feature_ind](features_split[feature_ind]), 2, axis=-1)
       if training:
         emb_channeled = tf.random.normal(emb_mus.shape, mean=emb_mus, stddev=tf.exp(emb_logvars/2.))
@@ -146,3 +148,36 @@ class InfoBottleneckAnnealingCallback(tf.keras.callbacks.Callback):
   def on_epoch_begin(self, epoch, logs=None):
     self.model.beta.assign(tf.exp(tf.math.log(self.beta_start)+
       tf.cast(max(epoch-self.number_pretraining_epochs, 0), tf.float32)/self.number_annealing_epochs*(tf.math.log(self.beta_end)-tf.math.log(self.beta_start))))
+
+
+class SaveDistinguishabilityMatricesCallback(tf.keras.callbacks.Callback):
+  """Callback to save distinguishability matrices during training.
+
+  Args:
+    save_frequency: The number of epochs between each save.
+    x_processed: The input values to pass through the actual 
+    x_raw:
+    outdir:
+  """
+
+  def __init__(self, 
+               save_frequency,
+               x_processed,
+               x_raw,
+               outdir):
+    super(SaveDistinguishabilityMatricesCallback, self).__init__()
+    self.save_frequency = save_frequency
+    self.x_processed = x_processed 
+    self.x_raw = x_raw 
+    self.outdir = outdir
+
+  def on_epoch_end(self, epoch, logs=None):
+    if (epoch % self.save_frequency) == 0:
+      beta_value = self.model.beta.value()
+      log10_beta_value = np.log10(beta_value)
+      features_split = tf.split(self.x_processed, self.model.feature_dimensionalities, axis=-1)
+      for feature_ind in range(self.model.number_features):
+        emb_mus, emb_logvars = self.model.feature_encoders[feature_ind](features_split[feature_ind])
+        distinguishabilitiy_matrix = utils.bhattacharyya_dist_mat_multivariate(emb_mus, emb_logvars, emb_mus, emb_logvars)
+        out_fname = f'feature_{feature_ind}_log10beta_{log10_beta_value:.3f}.png'
+        visualization.save_distinguishability_matrices(distinguishability_matrix, outdir, out_fname)

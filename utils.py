@@ -1,8 +1,7 @@
 """
 General utils: 
-- some functions for calculating similarities for InfoNCE
-- the Bhattacharyya calculation for quantifying the distinguishability of representations
-- The positional encoding layer for puffing out the inputs to help with training
+- Functions for calculating similarities for InfoNCE
+- The Bhattacharyya calculation for quantifying the distinguishability of representations
 """
 import tensorflow as tf
 import numpy as np
@@ -111,7 +110,7 @@ def get_scaled_similarity(embeddings1,
 
 
 
-def bhattacharyya_dist_mat_multivariate(mus1, logvars1, mus2, logvars2):
+def bhattacharyya_dist_mat(mus1, logvars1, mus2, logvars2):
   """Computes Bhattacharyya distances between multivariate Gaussians.
 
   Args:
@@ -122,8 +121,6 @@ def bhattacharyya_dist_mat_multivariate(mus1, logvars1, mus2, logvars2):
     logvars2: [M, d] float array of the log variances of the Gaussians.
   Returns:
     [N, M] array of distances.
-  Raises:
-    ValueError: If the similarity type is not recognized.
   """
   N = mus1.shape[0]
   M = mus2.shape[0]
@@ -146,6 +143,59 @@ def bhattacharyya_dist_mat_multivariate(mus1, logvars1, mus2, logvars2):
   determinant_sigma = np.prod(sigma_diag, axis=-1)
   determinant_sigma1 = np.exp(np.sum(logvars1, axis=-1))
   determinant_sigma2 = np.exp(np.sum(logvars2, axis=-1))
-  term1 = 0.125 * np.squeeze( (difference_mus_T @ sigma_mat_inv @ difference_mus) ).reshape([N, M])
+  term1 = 0.125 * (difference_mus_T @ sigma_mat_inv @ difference_mus).reshape([N, M])
   term2 = 0.5 * np.log(determinant_sigma / np.sqrt(determinant_sigma1 * determinant_sigma2))
   return term1+term2
+
+def kl_divergence_mat(mus1, logvars1, mus2, logvars2):
+  N = mus1.shape[0]
+  M = mus2.shape[0]
+  embedding_dimension = mus1.shape[1]
+  assert (mus2.shape[1] == embedding_dimension)
+
+  mus1 = np.tile(mus1[:, np.newaxis], [1, M, 1])
+  logvars1 = np.tile(logvars1[:, np.newaxis], [1, M, 1])
+  mus2 = np.tile(mus2[np.newaxis], [N, 1, 1])
+  logvars2 = np.tile(logvars2[np.newaxis], [N, 1, 1])
+  difference_mus = mus2 - mus1  # [N, M, embedding_dimension]; we want [N, M, embedding_dimension, 1]
+  difference_mus = difference_mus[..., np.newaxis]
+  difference_mus_T = np.transpose(difference_mus, [0, 1, 3, 2])
+
+  sigma1_diag = np.exp(logvars1)  
+  sigma2_diag = np.exp(logvars2)  
+  sigma2_inv_diag = np.exp(-logvars2)  
+
+  sigma2_mat_inv = np.apply_along_axis(np.diag, -1, 1./sigma2_diag)
+
+  term1 = np.sum(sigma2_inv_diag * sigma1_diag, axis=-1)  # [N, M]
+
+  term2 = (difference_mus_T @ sigma2_mat_inv @ difference_mus).reshape([N, M])
+
+  log_determinant_sigma1 = np.sum(logvars1, axis=-1)  ## [N, M]
+  log_determinant_sigma2 = np.sum(logvars2, axis=-1)  ## [N, M]
+
+  kl_mat = log_determinant_sigma2 - log_determinant_sigma1 - embedding_dimension
+
+  kl_mat += term1
+  kl_mat += term2
+
+  kl_mat *= 0.5
+
+  return kl_mat
+
+def MI_bounds_with_dist_mat(dist_mat, weights=None):
+  """
+  From Kolchinsky and Tracey 2017
+  """
+  if weights is None:
+    weights = np.ones(dist_mat.shape[0])
+  weights /= np.sum(weights)
+
+  exponentiated_distances = np.exp(-dist_mat)  ## this is between 0 and 1
+  estimate = np.sum(np.reshape(weights, [1, -1]) * exponentiated_distances, axis=1)
+  estimate = -np.sum(weights * np.log( estimate ))
+
+  return estimate
+
+def compute_entropy_bits(probability_arr):
+  return -np.sum(probability_arr*np.log2(np.where(probability_arr>0, probability_arr, 1)))
