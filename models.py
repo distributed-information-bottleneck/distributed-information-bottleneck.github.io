@@ -23,7 +23,7 @@ class PositionalEncoding(tf.keras.layers.Layer):
     return tf.concat([inputs] + [tf.math.sin(frequency*inputs) for frequency in self.frequencies], -1)
 
 
-class DistributedMLP(tf.keras.Model):
+class DistributedIBNet(tf.keras.Model):
   """Distributed IB implementation where each feature is passed through an MLP
 
   Args:
@@ -64,7 +64,7 @@ class DistributedMLP(tf.keras.Model):
     feature_embedding_dimension=32,
     output_activation_fn=None,
     ):
-      super(DistributedMLP, self).__init__()
+      super(DistributedIBNet, self).__init__()
       self.feature_dimensionalities = feature_dimensionalities
       feature_encoders = []
       for feature_dimensionality in feature_dimensionalities:
