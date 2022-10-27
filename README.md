@@ -31,3 +31,36 @@ history = model.fit(x, y,
 The data `x` is split by feature inside `DistributedIBNet`, which must be initialized with a list containing the dimensions of each feature (in the order that they appear in the data).
 
 After training, the `history` object contains all the necessary values to plot the trajectory in the distributed information plane and to monitor the information allocation to the features.
+
+### Model parameters
+
+- `feature_dimensionalities`: List of ints specifying the dimension of each feature.
+      **Example:** if the first feature is a scalar and the second is a one-hot with 4 values, 
+      the feature_dimensionalities should be [1, 4].
+- `encoder_architecture`: List of ints specifying the number of units in each layer of the 
+      feature encoders. **Example:** [64, 128] specifies that each feature encoder has 64 units in 
+      the first layer and 128 in the second.
+- `integration_network_architecture`: List of ints specifying the architecture of the MLP that
+      integrates all of the feature embeddings into a prediction.
+- `output_dimensionality`: Int specifying the dimensionality of the output. **Example:** If the task is 
+      scalar regression, `output_dimensionality`=1; if it's classification, 
+      `output_dimensionality`=number_classes; etc.
+- `use_positional_encoding`: Boolean specifying whether to preprocess each feature with a 
+      positional encoding layer.  Helps with training when using low-dimensional features.
+      Default: True.
+- `positional_encoding_frequencies`: List of floats specifying the frequencies to use in the
+      positional encoding layer.
+      Default: a few powers of 2, which we found to work well across the board.
+- `activation_fn`: The activation function to use in the feature encoders and integration
+      network, with the exception of the output layer.
+      Default: `ReLU`.
+- `feature_embedding_dimension`: Int specifying the embedding space dimensionality for each
+      feature. 
+      Default: 32.
+- `output_activation_fn`: The activation function for the output. 
+      Default: None.
+
+#### Running the (not distributed) Information Bottleneck
+It is easy to run the vanilla IB, where the entire input X is bottlenecked at once: equivalent to viewing the data as one combined feature.
+Instead of a multi-element list for `feature_dimensionalities`, simply pass a single element list that is the dimension of X.  
+For example, if X has two 3-dimensional features, the Distributed IB can be run with `feature_dimensionalities = [3, 3]` and the IB with `feature_dimensionalities = [6]`.
