@@ -183,7 +183,7 @@ def kl_divergence_mat(mus1, logvars1, mus2, logvars2):
 
   return kl_mat
 
-def estimate_MI_with_dist_mat(dist_mat, weights=None):
+def MI_bounds_with_dist_mat(dist_mat, weights=None):
   """
   From Kolchinsky and Tracey 2017
   """
@@ -196,3 +196,6 @@ def estimate_MI_with_dist_mat(dist_mat, weights=None):
   estimate = -np.sum(weights * np.log( estimate ))
 
   return estimate
+
+def compute_entropy_bits(probability_arr):
+  return -np.sum(probability_arr*np.log2(np.where(probability_arr>0, probability_arr, 1)))

@@ -26,10 +26,10 @@ def get_args():
   parser.add_argument('--beta_end', type=float, default=3e0, 
   	help='The bottleneck strength at the end of training. Recommend passing 1 for information-based error metric' + 
   	' (e.g. cross entropy) or finding a suitable range otherwise (ending after all KL->0).')
-  parser.add_argument('--number_pretraining_steps', type=int, default=10**4,
-  	help='The number of training steps to warm up where beta=beta_start.')
-  parser.add_argument('--number_annealing_steps', type=int, default=10**5,
-  	help='The number of training steps to anneal beta from beta_start to beta_end.')
+  parser.add_argument('--number_pretraining_epochs', type=int, default=10**3,
+  	help='The number of training epochs to warm up where beta=beta_start.')
+  parser.add_argument('--number_annealing_epochs', type=int, default=10**4,
+  	help='The number of training epochs to anneal beta from beta_start to beta_end.')
   parser.add_argument('--batch_size', type=int, default=128)
   parser.add_argument('--use_positional_encoding', type=bool, default=True,
   	help='Whether to preprocess each feature with a positional encoding layer.')
@@ -46,6 +46,12 @@ def get_args():
   parser.add_argument('--positional_encoding_frequencies') 
   parser.add_argument('--integration_network_architecture')
 
+  ## Dataset specific
+  parser.add_argument('--boolean_random_circuit', type=bool, default=False,
+    help='Whether to generate a random boolean circuit for training, or use the one from the paper.')
+  parser.add_argument('--boolean_number_input_gates', type=int, default=10,
+    help='If training with a random boolean circuit: how many input gates to use.')
+
 
   args = parser.parse_args()
   return args
@@ -55,7 +61,12 @@ def main():
   args = get_args()
 
   ## Load the data
-  dataset_dict = data.load(args.dataset)
+  dataset_dict = data.load(args.dataset, 
+    kwargs=dict(
+      boolean_random_circuit=args.boolean_random_circuit,
+      boolean_number_input_gates=args.boolean_number_input_gates,
+      ),
+    )
 
   print('Data loaded.')
   if args.ib:
@@ -82,7 +93,7 @@ def main():
   	)
 
   callbacks = [models.InfoBottleneckAnnealingCallback(
-  	args.beta_start, args.beta_end, args.number_pretraining_steps, args.number_annealing_steps)]
+  	args.beta_start, args.beta_end, args.number_pretraining_epochs, args.number_annealing_epochs)]
 
   if args.save_distinguishability_matrices_frequency > 0:
   	callbacks.append(models.SaveDistinguishabilityMatricesCallback(
@@ -99,7 +110,7 @@ def main():
   ## Train
   print('Model built, starting to train.')
 
-  number_epochs = args.number_pretraining_steps + args.number_annealing_steps
+  number_epochs = args.number_pretraining_epochs + args.number_annealing_epochs
 
   history = model.fit(
   	dataset_dict['x_train'],
@@ -122,10 +133,11 @@ def main():
   loss_series -= beta_series * np.sum(kl_series, axis=-1)
 
   kl_series /= np.log(2)  ## get the KL values in bits
+  
   if dataset_dict['loss_is_info_based']:
   	loss_series /= np.log(2)  ## get the loss values in bits
 
-  visualization.save_distributed_info_plane(beta_series, kl_series, loss_series, args.outdir)
+  visualization.save_distributed_info_plane(kl_series, loss_series, args.outdir)
 
 
 if __name__ == '__main__':

@@ -66,6 +66,7 @@ class DistributedIBNet(tf.keras.Model):
     ):
       super(DistributedIBNet, self).__init__()
       self.feature_dimensionalities = feature_dimensionalities
+      self.number_features = len(feature_dimensionalities)
       feature_encoders = []
       for feature_dimensionality in feature_dimensionalities:
         feature_encoder_layers = [tf.keras.layers.Input((feature_dimensionality,))]
@@ -85,7 +86,7 @@ class DistributedIBNet(tf.keras.Model):
 
   def build(self, input_shape):
     assert input_shape[-1] == np.sum(self.feature_dimensionalities)
-    for feature_ind in range(len(self.feature_dimensionalities)):
+    for feature_ind in range(self.number_features):
       self.feature_encoders[feature_ind].build(input_shape[:-1]+[self.feature_dimensionalities[feature_ind]])
 
     self.integration_network.build()
@@ -100,7 +101,7 @@ class DistributedIBNet(tf.keras.Model):
 
     feature_embeddings, kl_divergence_channels = [[], []]
 
-    for feature_ind in range(len(self.feature_dimensionalities)):
+    for feature_ind in range(self.number_features):
       emb_mus, emb_logvars = tf.split(self.feature_encoders[feature_ind](features_split[feature_ind]), 2, axis=-1)
       if training:
         emb_channeled = tf.random.normal(emb_mus.shape, mean=emb_mus, stddev=tf.exp(emb_logvars/2.))
@@ -153,8 +154,8 @@ class SaveDistinguishabilityMatricesCallback(tf.keras.callbacks.Callback):
   """Callback to save distinguishability matrices during training.
 
   Args:
-    save_frequency:
-    x_processed:
+    save_frequency: The number of epochs between each save.
+    x_processed: The input values to pass through the actual 
     x_raw:
     outdir:
   """
@@ -175,7 +176,7 @@ class SaveDistinguishabilityMatricesCallback(tf.keras.callbacks.Callback):
       beta_value = self.model.beta.value()
       log10_beta_value = np.log10(beta_value)
       features_split = tf.split(self.x_processed, self.model.feature_dimensionalities, axis=-1)
-      for feature_ind in range(len(self.model.feature_dimensionalities)):
+      for feature_ind in range(self.model.number_features):
         emb_mus, emb_logvars = self.model.feature_encoders[feature_ind](features_split[feature_ind])
         distinguishabilitiy_matrix = utils.bhattacharyya_dist_mat_multivariate(emb_mus, emb_logvars, emb_mus, emb_logvars)
         out_fname = f'feature_{feature_ind}_log10beta_{log10_beta_value:.3f}.png'

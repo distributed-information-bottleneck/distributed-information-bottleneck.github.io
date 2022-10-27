@@ -8,22 +8,17 @@ For convenience, we have wrapped all the functionality into a `tf.keras.Model` s
 The bottleneck contribution to the loss is accounted for as a `model.loss`.
 The rest of the functionality is achieved through custom `keras` callbacks:
 - `InfoBottleneckAnnealingCallback` handles the logarithmic annealing of the bottleneck strength \beta
-- `MutualInfoEstimateCallback` estimates the upper and lower bounds of the mutual information of features (one callback per feature!) during training
 - `SaveDistinguishabilityMatricesCallback` saves the feature value distinguishability matrices during training
 
 A full training run can be accomplished with the following:
 ```python
 model = DistributedIBNet(model_params)
-model.compile(
-	optimizer=tf.keras.optimizers.Adam(lr),
-	loss=tf.keras.losses.BinaryCrossentropy(from_logits=True),
-	metrics=['accuracy']
-	)
-
+model.compile(optimizer_and_loss_dict)
 beta_annealing_callback = InfoBottleneckAnnealingCallback(annealing_params)
 
-history = model.fit(x, y, epochs=number_pretraining_epochs+number_annealing_epochs,
-	callbacks=[beta_annealing_callback], verbose=False)
+history = model.fit(x, y, 
+	epochs=number_pretraining_epochs+number_annealing_epochs,
+	callbacks=[beta_annealing_callback])
 ```
 
 The data `x` is split by feature inside `DistributedIBNet`, which must be initialized with a list containing the dimensions of each feature (in the order that they appear in the data).
