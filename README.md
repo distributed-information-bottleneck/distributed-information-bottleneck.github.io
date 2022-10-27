@@ -5,7 +5,7 @@ The [Distributed IB](https://distributed-information-bottleneck.github.io) treat
 
 ## Code overview
 In practice, the (variational) Distributed IB is a probabilistic encoder for each feature and a KL divergence penalty that we increase gradually over the course of training.
-Under the hood it looks very familiar to a VAE.
+Under the hood it looks very similar to a VAE.
 
 For convenience, we have wrapped all the functionality into a `tf.keras.Model` subclass called `DistributedIBNet`. 
 `DistributedIBNet` can be used in the standard `tf.keras.model` ways, e.g. with `model.compile(...)` and `model.fit(...)`. 
