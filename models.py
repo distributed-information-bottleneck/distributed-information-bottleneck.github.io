@@ -30,7 +30,7 @@ class DistributedIBNet(tf.keras.Model):
     feature_dimensionalities: List of ints specifying the dimension of each feature.
       E.g. if the first feature is just a scalar and the second is a one-hot with 4 values, 
       the feature_dimensionalities should be [1, 4].
-    encoder_architecture: List of ints specifying the number of units in each layer of the 
+    feature_encoder_architecture: List of ints specifying the number of units in each layer of the 
       feature encoders. E.g. [64, 128] specifies that each feature encoder has 64 units in 
       the first layer and 128 in the second.
     integration_network_architecture: List of ints specifying the architecture of the MLP that
@@ -41,9 +41,9 @@ class DistributedIBNet(tf.keras.Model):
     use_positional_encoding: Boolean specifying whether to preprocess each feature with a 
       positional encoding layer.  Helps with training when using low-dimensional features.
       Default: True.
-    positional_encoding_frequencies: List of floats specifying the frequencies to use in the
-      positional encoding layer.
-      Default: a few powers of 2, which we found to work well across the board.
+    number_positional_encoding_frequencies: Number of frequencies to use in the
+      positional encoding layer; a range of powers of 2.
+      Default: 5, which we found to work well across the board.
     activation_fn: The activation function to use in the feature encoders and integration
       network, with the exception of the output layer.
       Default: relu.
@@ -55,11 +55,11 @@ class DistributedIBNet(tf.keras.Model):
   """
   def __init__(self, 
     feature_dimensionalities,
-    encoder_architecture,
+    feature_encoder_architecture,
     integration_network_architecture,
     output_dimensionality,
     use_positional_encoding=True,
-    positional_encoding_frequencies=2**np.arange(5),
+    number_positional_encoding_frequencies=5,
     activation_fn='relu',
     feature_embedding_dimension=32,
     output_activation_fn=None,
@@ -67,12 +67,13 @@ class DistributedIBNet(tf.keras.Model):
       super(DistributedIBNet, self).__init__()
       self.feature_dimensionalities = feature_dimensionalities
       self.number_features = len(feature_dimensionalities)
+      positional_encoding_frequencies = 2**np.arange(1, number_positional_encoding_frequencies)
       feature_encoders = []
       for feature_dimensionality in feature_dimensionalities:
         feature_encoder_layers = [tf.keras.layers.Input((feature_dimensionality,))]
         if use_positional_encoding:
           feature_encoder_layers += [PositionalEncoding(positional_encoding_frequencies)]
-        feature_encoder_layers += [tf.keras.layers.Dense(number_units, activation_fn) for number_units in encoder_architecture]
+        feature_encoder_layers += [tf.keras.layers.Dense(number_units, activation_fn) for number_units in feature_encoder_architecture]
         feature_encoder_layers += [tf.keras.layers.Dense(2*feature_embedding_dimension)]
         feature_encoders.append(tf.keras.Sequential(feature_encoder_layers))
       self.feature_encoders = feature_encoders 

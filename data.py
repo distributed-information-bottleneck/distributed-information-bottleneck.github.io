@@ -8,6 +8,8 @@ Data loading and preprocessing for:
 
 Coming soon!
 """
+import numpy as np  
+import tensorflow as tf  
 
 def fetch_boolean_circuit(**kwargs):
 
@@ -70,3 +72,7 @@ def fetch_boolean_circuit(**kwargs):
   	loss_is_info_based=loss_is_info_based,
   	metrics=metrics,
   	)
+
+def load(dataset, **kwargs):
+	if dataset == 'boolean_circuit':
+		return fetch_boolean_circuit(**kwargs)

@@ -3,13 +3,16 @@ One stop shop for training on any of the datasets in the Distributed IB papers.
 """
 
 import argparse
+import tensorflow as tf  
+import numpy as np  
+import os 
 
-import utils, data, models
+import utils, data, models, visualization
 
 
 def get_args():
   parser = argparse.ArgumentParser(description='')
-  parser.add_argument('--dataset', default='bikeshare',
+  parser.add_argument('--dataset', default='boolean_circuit',
   	help='Choose the dataset.',
   	choices=['boolean_circuit', 'mona_lisa', 'glass',
   	'pendulum',
@@ -20,7 +23,7 @@ def get_args():
   	help='Whether to train as the basic information bottleneck, where'+
   	' all features are processed together into a single bottleneck.' + 
   	' Intended for the pendulum information loss and the DIB/IB Mona Lisa comparison.')
-  parser.add_argument('--lr', type=float, default=0.02)
+  parser.add_argument('--lr', type=float, default=3e-4)
   parser.add_argument('--beta_start', type=float, default=1e-4, 
   	help='The bottleneck strength beta at the start of training. Recommend starting small and increasing.')
   parser.add_argument('--beta_end', type=float, default=3e0, 
@@ -42,9 +45,12 @@ def get_args():
   	help='Whether and how often to save distinguishability matrices, which show where the network' + 
   	' is allocating information.')
 
-  parser.add_argument('--feature_encoder_architecture') 
-  parser.add_argument('--positional_encoding_frequencies') 
-  parser.add_argument('--integration_network_architecture')
+  parser.add_argument('--feature_encoder_architecture', type=int, nargs='+', default=[128, 128],
+    help='The specs for each feature encoder MLP.') 
+  parser.add_argument('--number_positional_encoding_frequencies', type=int, default=5,
+    help='The number of sinusoid frequencies used to puff out the low-dimensional feature data pre-MLP.') 
+  parser.add_argument('--integration_network_architecture', type=int, nargs='+', default=[256, 256],
+    help='The specs for the integration network that does the prediction using all the embeddings.')
 
   ## Dataset specific
   parser.add_argument('--boolean_random_circuit', type=bool, default=False,
@@ -74,12 +80,12 @@ def main():
   	dataset_dict['feature_dimensionalities'] = [np.sum(dataset_dict['feature_dimensionalities'])]
 
   ## Build the model
-  model = models.DistributedMLP(dataset_dict['feature_dimensionalities'],
-    args.encoder_architecture,
+  model = models.DistributedIBNet(dataset_dict['feature_dimensionalities'],
+    args.feature_encoder_architecture,
     args.integration_network_architecture,
     dataset_dict['output_dimensionality'],
     use_positional_encoding=args.use_positional_encoding,
-    positional_encoding_frequencies=args.positional_encoding_frequencies,
+    number_positional_encoding_frequencies=args.number_positional_encoding_frequencies,
     activation_fn=args.activation_fn,
     feature_embedding_dimension=args.feature_embedding_dimension,
     output_activation_fn=dataset_dict['output_activation_fn'])
@@ -102,13 +108,19 @@ def main():
   		dataset_dict['x_valid_raw'],
   		args.outdir))
 
-  number_trainable_variables = 0
-  for tensor in model.trainable_variables:
-  	number_trainable_variables += np.product(tensor.shape)
-  print(f'Number of trainable variables: {number_trainable_variables}')
+  # number_trainable_variables = 0
+  # for tensor in model.trainable_variables:
+  # 	number_trainable_variables += np.product(tensor.shape)
+  # print(f'Number of trainable variables: {number_trainable_variables}')
 
   ## Train
   print('Model built, starting to train.')
+
+
+  beta_annealing_callback = models.InfoBottleneckAnnealingCallback(args.beta_start,
+               args.beta_end,
+               args.number_pretraining_epochs,
+               args.number_annealing_epochs)
 
   number_epochs = args.number_pretraining_epochs + args.number_annealing_epochs
 

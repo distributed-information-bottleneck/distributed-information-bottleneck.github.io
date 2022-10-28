@@ -5,6 +5,8 @@ The [Distributed Information Bottleneck (IB)](https://distributed-information-bo
 
 In typical machine learning scenarios, the primary products of a training run is peak performance on some metric and a model checkpoint. With the Distributed IB, the fruits of training are signals that map out the information in the data; the training history and artifacts along the way are the desiderata.
 
+For more information and links to relevant papers, see the outward facing page of this repo, [distributed-information-bottleneck.github.io](https://distributed-information-bottleneck.github.io).
+
 ## Code overview
 In practice, the (variational) Distributed IB is a probabilistic encoder for each feature and a KL divergence penalty that we increase gradually over the course of training.
 Under the hood it looks very similar to a VAE.
@@ -37,7 +39,7 @@ After training, the `history` object contains all the necessary values to plot t
 - `feature_dimensionalities`: List of ints specifying the dimension of each feature.
       **Example:** if the first feature is a scalar and the second is a one-hot with 4 values, 
       the feature_dimensionalities should be [1, 4].
-- `encoder_architecture`: List of ints specifying the number of units in each layer of the 
+- `feature_encoder_architecture`: List of ints specifying the number of units in each layer of the 
       feature encoders. **Example:** [64, 128] specifies that each feature encoder has 64 units in 
       the first layer and 128 in the second.
 - `integration_network_architecture`: List of ints specifying the architecture of the MLP that
@@ -64,3 +66,6 @@ After training, the `history` object contains all the necessary values to plot t
 It is easy to run the vanilla IB, where the entire input X is bottlenecked at once: equivalent to viewing the data as one combined feature.
 Instead of a multi-element list for `feature_dimensionalities`, simply pass a single element list that is the dimension of X.  
 For example, if X has two 3-dimensional features, the Distributed IB can be run with `feature_dimensionalities = [3, 3]` and the IB with `feature_dimensionalities = [6]`.
+
+#### Data that isn't tabular
+If some features of your data are time series, images, etc., where processing with an MLP doesn't make a lot of sense, you can use a subnetwork to process those features before inputting a distilled feature vector to `DistributedIBNet`.  It will most likely require defining a custom computation graph and using [`tf.keras.Model`](https://www.tensorflow.org/api_docs/python/tf/keras/Model), where you split the features in the computation graph, process whichever ones require it, and then re-concatenate the features along the last axis to feed them into an instance of `DistributedIBNet`.

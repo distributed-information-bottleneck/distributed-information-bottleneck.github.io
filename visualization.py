@@ -6,6 +6,7 @@ Visualization:
 
 import os
 import matplotlib.pyplot as plt
+import numpy as np 
 
 default_mpl_colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf']
 
@@ -17,7 +18,6 @@ def save_distinguishability_matrices(distinguishability_matrix, outdir, out_fnam
   return
 
 def save_distributed_info_plane(kl_series, loss_series, outdir, entropy_y=None):
-
   number_features = kl_series.shape[1]
   desired_data_length = min(1000, kl_series.shape[0])
   sieve_factor = kl_series.shape[0]//desired_data_length
@@ -46,7 +46,7 @@ def save_distributed_info_plane(kl_series, loss_series, outdir, entropy_y=None):
   ax.patch.set_visible(False) # hide the 'canvas'
   
   saveto = os.path.join(outdir, 'distributed_info_plane.png')
-  plt.savefig(saveto)
+  plt.savefig(saveto, dpi=300)
   plt.clf()
   return
 
