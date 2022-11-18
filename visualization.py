@@ -1,7 +1,7 @@
 """
 Visualization:
 - Distributed information plane
-- Distinguishability matrices from feature values
+- Compression scheme confusion matrices from feature values
 """
 
 import os
@@ -10,7 +10,7 @@ import numpy as np
 
 default_mpl_colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf']
 
-def save_distinguishability_matrices(distinguishability_matrix, outdir, out_fname):
+def save_compression_matrices(compression_matrix, outdir, out_fname):
   plt.figure(figsize=(8, 8))
   saveto = os.path.join(outdir, out_fname)
   plt.savefig(saveto)

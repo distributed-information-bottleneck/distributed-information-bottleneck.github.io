@@ -1,7 +1,7 @@
 """
 General utils: 
 - Functions for calculating similarities for InfoNCE
-- The Bhattacharyya calculation for quantifying the distinguishability of representations
+- The Bhattacharyya calculation for quantifying the distinguishability of representations in the learned compression schemes
 """
 import tensorflow as tf
 import numpy as np

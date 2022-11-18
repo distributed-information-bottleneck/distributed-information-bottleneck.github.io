@@ -41,8 +41,8 @@ def get_args():
   parser.add_argument('--feature_embedding_dimension', type=int, default=32, 
   	help='The embedding space dimensionality for each feature.')
   parser.add_argument('--optimizer', type=str, default='adam')
-  parser.add_argument('--save_distinguishability_matrices_frequency', type=int, default=0,
-  	help='Whether and how often to save distinguishability matrices, which show where the network' + 
+  parser.add_argument('--save_compression_matrices_frequency', type=int, default=0,
+  	help='Whether and how often to save compression matrices, which show where the network' + 
   	' is allocating information.')
 
   parser.add_argument('--feature_encoder_architecture', type=int, nargs='+', default=[128, 128],
@@ -101,9 +101,9 @@ def main():
   callbacks = [models.InfoBottleneckAnnealingCallback(
   	args.beta_start, args.beta_end, args.number_pretraining_epochs, args.number_annealing_epochs)]
 
-  if args.save_distinguishability_matrices_frequency > 0:
-  	callbacks.append(models.SaveDistinguishabilityMatricesCallback(
-  		args.save_distinguishability_matrices_frequency,
+  if args.save_compression_matrices_frequency > 0:
+  	callbacks.append(models.SaveCompressionMatricesCallback(
+  		args.save_compression_matrices_frequency,
   		dataset_dict['x_valid'],
   		dataset_dict['x_valid_raw'],
   		args.outdir))

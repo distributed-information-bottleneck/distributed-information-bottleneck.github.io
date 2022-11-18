@@ -16,7 +16,7 @@ For convenience, we have wrapped all the functionality into a `tf.keras.Model` s
 The bottleneck contribution to the loss is included through a call to `model.add_loss`.
 The rest of the necessary functionality is achieved through custom `keras` callbacks:
 - `InfoBottleneckAnnealingCallback` handles the logarithmic annealing of the bottleneck strength \beta
-- `SaveDistinguishabilityMatricesCallback` saves the feature value distinguishability matrices during training
+- `SaveCompressionMatricesCallback` saves the confusion matrices that represent the feature compression schemes learned during training
 
 ### Training example
 A full training run can be accomplished with the following:
@@ -62,10 +62,10 @@ After training, the `history` object contains all the necessary values to plot t
 - `output_activation_fn`: The activation function for the output. 
       Default: None.
 
-#### Running the (not distributed) Information Bottleneck
+### Running the (not distributed) Information Bottleneck
 It is easy to run the vanilla IB, where the entire input X is bottlenecked at once: equivalent to viewing the data as one combined feature.
 Instead of a multi-element list for `feature_dimensionalities`, simply pass a single element list that is the dimension of X.  
 For example, if X has two 3-dimensional features, the Distributed IB can be run with `feature_dimensionalities = [3, 3]` and the IB with `feature_dimensionalities = [6]`.
 
-#### Data that isn't tabular
+### Data that isn't tabular
 If some features of your data are time series, images, etc., where processing with an MLP doesn't make a lot of sense, you can use a subnetwork to process those features before inputting a distilled feature vector to `DistributedIBNet`.  It will most likely require defining a custom computation graph and using [`tf.keras.Model`](https://www.tensorflow.org/api_docs/python/tf/keras/Model), where you split the features in the computation graph, process whichever ones require it, and then re-concatenate the features along the last axis to feed them into an instance of `DistributedIBNet`.

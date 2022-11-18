@@ -151,8 +151,8 @@ class InfoBottleneckAnnealingCallback(tf.keras.callbacks.Callback):
       tf.cast(max(epoch-self.number_pretraining_epochs, 0), tf.float32)/self.number_annealing_epochs*(tf.math.log(self.beta_end)-tf.math.log(self.beta_start))))
 
 
-class SaveDistinguishabilityMatricesCallback(tf.keras.callbacks.Callback):
-  """Callback to save distinguishability matrices during training.
+class SaveCompressionMatricesCallback(tf.keras.callbacks.Callback):
+  """Callback to save compression scheme matrices during training.
 
   Args:
     save_frequency: The number of epochs between each save.
@@ -166,7 +166,7 @@ class SaveDistinguishabilityMatricesCallback(tf.keras.callbacks.Callback):
                x_processed,
                x_raw,
                outdir):
-    super(SaveDistinguishabilityMatricesCallback, self).__init__()
+    super(SaveCompressionMatricesCallback, self).__init__()
     self.save_frequency = save_frequency
     self.x_processed = x_processed 
     self.x_raw = x_raw 
@@ -178,7 +178,7 @@ class SaveDistinguishabilityMatricesCallback(tf.keras.callbacks.Callback):
       log10_beta_value = np.log10(beta_value)
       features_split = tf.split(self.x_processed, self.model.feature_dimensionalities, axis=-1)
       for feature_ind in range(self.model.number_features):
-        emb_mus, emb_logvars = self.model.feature_encoders[feature_ind](features_split[feature_ind])
+        emb_mus, emb_logvars = tf.split(self.model.feature_encoders[feature_ind](features_split[feature_ind]), 2, axis=-1)
         distinguishabilitiy_matrix = utils.bhattacharyya_dist_mat_multivariate(emb_mus, emb_logvars, emb_mus, emb_logvars)
         out_fname = f'feature_{feature_ind}_log10beta_{log10_beta_value:.3f}.png'
-        visualization.save_distinguishability_matrices(distinguishability_matrix, outdir, out_fname)
+        visualization.save_compression_matrices(compression_matrix, outdir, out_fname)
