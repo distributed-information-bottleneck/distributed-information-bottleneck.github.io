@@ -99,14 +99,14 @@ def save_distributed_info_plane(kl_series, loss_series, outdir, entropy_y=None):
   if entropy_y is not None:
     ax.plot(info_in_plot_lims, [entropy_y]*2, 'k:')
   ax.set_xlim(info_in_plot_lims)
-
-  ax2 = ax.twinx()
-  for feature_ind in range(number_features):
-    ax2.plot(approx_info_in_full[plotting_start_ind:], 
-      approx_info_in_parts[plotting_start_ind:, feature_ind], 
-      color=default_mpl_colors[feature_ind%len(default_mpl_colors)], lw=4)
-  ax.set_zorder(ax2.get_zorder()+1) # put ax in front of ax2
-  ax.patch.set_visible(False) # hide the 'canvas'
+  if number_features > 1:
+    ax2 = ax.twinx()
+    for feature_ind in range(number_features):
+      ax2.plot(approx_info_in_full[plotting_start_ind:], 
+        approx_info_in_parts[plotting_start_ind:, feature_ind], 
+        color=default_mpl_colors[feature_ind%len(default_mpl_colors)], lw=4)
+    ax.set_zorder(ax2.get_zorder()+1) # put ax in front of ax2
+    ax.patch.set_visible(False) # hide the 'canvas'
   
   saveto = os.path.join(outdir, 'distributed_info_plane.png')
   plt.savefig(saveto, dpi=300)

@@ -274,9 +274,9 @@ def main():
 
     ## Grab the stats from the run
     beta_series = np.float32(beta_series)
-    kl_series = np.stack(loss_kl_series, -1)
+    kl_series = np.stack(loss_kl_series, 0)
     loss_series = np.float32(loss_infonce_series)
-    kl_series_validation = np.stack(loss_kl_series_validation, -1)
+    kl_series_validation = np.stack(loss_kl_series_validation, 0)
     loss_series_validation = np.float32(loss_infonce_series_validation)
 
     kl_series /= np.log(2)  ## convert the KL values to bits
