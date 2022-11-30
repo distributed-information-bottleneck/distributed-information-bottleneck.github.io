@@ -1,4 +1,4 @@
-# Where the information is in your data?
+# Where is the information in your data?
 
 ## High level
 The [Distributed Information Bottleneck (IB)](https://distributed-information-bottleneck.github.io) treats each feature of your data -- whether that feature is the age of a person visiting the hospital, the humidity on a day in Washington, D.C., or the density of a particular radial shell in a glassy material -- as information to be communicated before being used in a predictive model.  We place a cost on the information and that has the effect of locating the most informative features, and even the most informative distinctions within each feature, for different levels of predictive accuracy.
