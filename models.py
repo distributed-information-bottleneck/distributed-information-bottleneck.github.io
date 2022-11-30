@@ -175,10 +175,12 @@ class SaveCompressionMatricesCallback(tf.keras.callbacks.Callback):
   def on_epoch_end(self, epoch, logs=None):
     if (epoch % self.save_frequency) == 0:
       beta_value = self.model.beta.value()
-      log10_beta_value = np.log10(beta_value)
       features_split = tf.split(self.x_processed, self.model.feature_dimensionalities, axis=-1)
+      features_raw = tf.split(self.x_raw, self.model.feature_dimensionalities, axis=-1)
       for feature_ind in range(self.model.number_features):
-        emb_mus, emb_logvars = tf.split(self.model.feature_encoders[feature_ind](features_split[feature_ind]), 2, axis=-1)
-        distinguishabilitiy_matrix = utils.bhattacharyya_dist_mat_multivariate(emb_mus, emb_logvars, emb_mus, emb_logvars)
-        out_fname = f'feature_{feature_ind}_log10beta_{log10_beta_value:.3f}.png'
-        visualization.save_compression_matrices(compression_matrix, outdir, out_fname)
+        out_fname = os.path.join(self.outdir, f'feature_{feature_ind}_log10beta_{np.log10(beta_value):.3f}.png')
+        visualization.save_compression_matrices(
+          self.model.feature_encoders[feature_ind], 
+          features_split[feature_ind], 
+          out_fname, 
+          inp_features_raw=features_split_raw[feature_ind])
