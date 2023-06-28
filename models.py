@@ -93,7 +93,7 @@ class DistributedIBNet(tf.keras.Model):
     self.integration_network.build()
     return
 
-  def call(self, inputs, training=None):
+  def call(self, inputs):
     # Encode each feature into a Gaussian in embedding space
     # Evaluate the KL divergence of the Gaussian from the unit normal Gaussian (the prior)
     # Sample from the Gaussian for the reparameterization trick
@@ -104,10 +104,8 @@ class DistributedIBNet(tf.keras.Model):
 
     for feature_ind in range(self.number_features):
       emb_mus, emb_logvars = tf.split(self.feature_encoders[feature_ind](features_split[feature_ind]), 2, axis=-1)
-      if training:
-        emb_channeled = tf.random.normal(emb_mus.shape, mean=emb_mus, stddev=tf.exp(emb_logvars/2.))
-      else:
-        emb_channeled = emb_mus
+
+      emb_channeled = tf.random.normal(emb_mus.shape, mean=emb_mus, stddev=tf.exp(emb_logvars/2.))
 
       feature_embeddings.append(emb_channeled)
       kl_divergence_channel = tf.reduce_mean(
@@ -154,11 +152,13 @@ class InfoBottleneckAnnealingCallback(tf.keras.callbacks.Callback):
 class SaveCompressionMatricesCallback(tf.keras.callbacks.Callback):
   """Callback to save compression scheme matrices during training.
 
+  Assume one dimensional feature data, and compute the distinguishability
+  matrices for a sample of the data.
   Args:
-    save_frequency: The number of epochs between each save.
+    save_frequency: The number of epochs between each save, since it takes a little while.
     x_processed: The input values to pass through the actual 
-    x_raw:
-    outdir:
+    x_raw: The raw data values, to use when displaying the range of values.
+    outdir: The directory in which to save the images.
   """
 
   def __init__(self, 
@@ -184,3 +184,40 @@ class SaveCompressionMatricesCallback(tf.keras.callbacks.Callback):
           features_split[feature_ind], 
           out_fname, 
           inp_features_raw=features_split_raw[feature_ind])
+
+class InfoPerFeatureCallback(tf.keras.callbacks.Callback):
+  """Callback to compute the information contained in each compression channel (encoder) during training.
+
+  
+  Args:
+    save_frequency: The number of epochs between each save, since it takes a little while.
+    tf_dataset_validation: The validation dataset, complete with all featuers and 
+      the relevance variable Y (which will be stripped away as it is not needed here).
+    info_bound_batch_size: The number of data points to use for each batch when
+      estimating the upper and lower bounds.  Increasing this parameter yields 
+      tighter bounds on the mutual information.
+    info_bound_number_batches: The number of batches over which to average the 
+      upper and lower bounds.  Increasing this parameter reduces the uncertainty
+      of the bounds.
+  """
+  def __init__(self, 
+               save_frequency,
+               tf_dataset_validation,
+               info_bound_batch_size=1024,
+               info_bound_number_batches=8):
+    super(InfoPerFeatureCallback, self).__init__()
+    self.save_frequency = save_frequency
+    self.tf_dataset_validation = tf_dataset_validation.map(lambda x, y: x)
+    self.bounds = []
+    self.info_bound_batch_size = info_bound_batch_size
+    self.info_bound_number_batches = info_bound_number_batches
+
+  def on_epoch_end(self, epoch, logs=None):
+    if (epoch % self.save_frequency) == 0:
+      for feature_ind in range(self.model.number_features):
+        infonce_lower, loo_upper = utils.estimate_mi_sandwich_bounds(
+          self.model.feature_encoders[feature_ind], 
+          self.tf_dataset_validation.map(lambda x: tf.split(x, self.model.feature_dimensionalities, axis=-1)[feature_ind]), 
+          eval_batch_size=self.info_bound_batch_size, 
+          num_eval_batches=self.info_bound_number_batches)
+        self.bounds.append([infonce_lower, loo_upper])

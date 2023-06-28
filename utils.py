@@ -1,10 +1,76 @@
 """
 General utils: 
+- Estimation of the upper and lower bounds for the mutual information of the compressed variables
 - Functions for calculating similarities for InfoNCE
 - The Bhattacharyya calculation for quantifying the distinguishability of representations in the learned compression schemes
 """
 import tensorflow as tf
 import numpy as np
+
+def estimate_mi_sandwich_bounds(encoder, 
+  dataset, evaluation_batch_size=1024, number_evaluation_batches=8):
+  """Computes the upper and lower bounds of mutual information transmitted by an encoder, given the dataset.
+  
+  With X and U the random variables representing the data and the compressed
+  messages, respectively, we assume the conditional distribution output by the
+  encoder p(u|x) is a diagonal Gaussian in latent space and parameterized by the
+  center and log variance values.  As the conditional distribution is known, we 
+  can use the InfoNCE lower and "leave one out" upper bounds from Poole et al.
+  (2019).  See the manuscript and/or colab notebook for analysis of the bounds
+  up to several bits of transmitted information.
+
+  Args:
+    encoder: TF model that produces an encoding U given input data 
+      (no assumptions about architecture of the model or form of the data).
+    dataset: tensorflow.data.Dataset that yields data of a single feature.
+    evaluation_batch_size: The number of data points to use for each batch when
+      estimating the upper and lower bounds.  Increasing this parameter yields 
+      tighter bounds on the mutual information.
+    number_evaluation_batches: The number of batches over which to average the 
+      upper and lower bounds.  Increasing this parameter reduces the uncertainty
+      of the bounds.
+  Returns:
+    Lower and upper bound estimates for the communication channel represented by
+    the encoder.
+  """
+  @tf.function
+  def compute_batch(batch_data):
+    mus, logvars = tf.split(encoder(batch_data), 2, axis=-1) 
+    # We desire extra numerical precision below; cast to float64
+    mus = tf.cast(mus, tf.float64)  
+    logvars = tf.cast(logvars, tf.float64)
+    embedding_dimension = tf.shape(mus)[-1]
+    stddevs = tf.exp(logvars/2.)
+    sampled_u_values = tf.random.normal(mus.shape, mean=mus, 
+                                        stddev=stddevs, dtype=tf.float64)
+    # Expand dimensions to broadcast and compute the pairwise distances between
+    # the sampled points and the centers of the conditional distributions
+    sampled_u_values = tf.reshape(sampled_u_values, 
+     [evaluation_batch_size, 1, embedding_dimension])
+    mus = tf.reshape(mus, [1, evaluation_batch_size, embedding_dimension])
+    distances_ui_muj = sampled_u_values - mus
+    
+    normalized_distances_ui_muj = distances_ui_muj / tf.reshape(stddevs, [1, evaluation_batch_size, embedding_dimension])
+    p_ui_cond_xj = tf.exp(-tf.reduce_sum(normalized_distances_ui_muj**2, axis=-1)/2. - \
+      tf.reshape(tf.reduce_sum(logvars, axis=-1), [1, evaluation_batch_size])/2.)
+    normalization_factor = (2.*np.pi)**(tf.cast(embedding_dimension, tf.float64)/2.)
+    p_ui_cond_xj = p_ui_cond_xj / normalization_factor
+    # InfoNCE (lower bound) is the diagonal terms over their rows, averaged
+    p_ui_cond_xi = tf.linalg.diag_part(p_ui_cond_xj)
+    avg_pui_cond_xj = tf.reduce_mean(p_ui_cond_xj, axis=1)
+    infonce_lower = tf.reduce_mean(tf.math.log(matching_p_yi_xi/tf.reduce_mean(p_ui_cond_xj, axis=1)))
+    # "Leave one out" (upper bound) is the same but without the diagonal term in the denom
+    p_ui_cond_xj *= (1. - tf.eye(evaluation_batch_size, dtype=tf.float64))
+    loo_upper = tf.reduce_mean(tf.math.log(p_ui_cond_xi/tf.reduce_mean(p_ui_cond_xj, axis=1)))
+    return infonce_lower, loo_upper
+
+  # number_evaluation_batches*evaluation_batch_size can be larger than the dataset 
+  # We gain from re-sampling u even if we have seen the data point x before 
+  bound_estimates = []
+  for batch_data in dataset.repeat().shuffle(evaluation_batch_size*10).batch(evaluation_batch_size).take(number_evaluation_batches):
+    bound_estimates.append(compute_batch(batch_data)) 
+    
+  return np.mean(np.stack(bound_estimates, 0), 0)
 
 @tf.function
 def pairwise_l2_distance(pts1, pts2):
