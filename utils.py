@@ -58,7 +58,7 @@ def estimate_mi_sandwich_bounds(encoder,
     # InfoNCE (lower bound) is the diagonal terms over their rows, averaged
     p_ui_cond_xi = tf.linalg.diag_part(p_ui_cond_xj)
     avg_pui_cond_xj = tf.reduce_mean(p_ui_cond_xj, axis=1)
-    infonce_lower = tf.reduce_mean(tf.math.log(matching_p_yi_xi/tf.reduce_mean(p_ui_cond_xj, axis=1)))
+    infonce_lower = tf.reduce_mean(tf.math.log(p_ui_cond_xi/tf.reduce_mean(p_ui_cond_xj, axis=1)))
     # "Leave one out" (upper bound) is the same but without the diagonal term in the denom
     p_ui_cond_xj *= (1. - tf.eye(evaluation_batch_size, dtype=tf.float64))
     loo_upper = tf.reduce_mean(tf.math.log(p_ui_cond_xi/tf.reduce_mean(p_ui_cond_xj, axis=1)))
