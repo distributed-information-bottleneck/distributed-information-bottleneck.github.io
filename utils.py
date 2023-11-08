@@ -174,8 +174,6 @@ def get_scaled_similarity(embeddings1,
   similarity /= temperature
   return similarity
 
-
-
 def bhattacharyya_dist_mat(mus1, logvars1, mus2, logvars2):
   """Computes Bhattacharyya distances between multivariate Gaussians.
 
@@ -249,19 +247,16 @@ def kl_divergence_mat(mus1, logvars1, mus2, logvars2):
 
   return kl_mat
 
-def MI_bounds_with_dist_mat(dist_mat, weights=None):
-  """
-  From Kolchinsky and Tracey 2017
-  """
-  if weights is None:
-    weights = np.ones(dist_mat.shape[0])
-  weights /= np.sum(weights)
-
-  exponentiated_distances = np.exp(-dist_mat)  ## this is between 0 and 1
-  estimate = np.sum(np.reshape(weights, [1, -1]) * exponentiated_distances, axis=1)
-  estimate = -np.sum(weights * np.log( estimate ))
-
-  return estimate
-
 def compute_entropy_bits(probability_arr):
   return -np.sum(probability_arr*np.log2(np.where(probability_arr>0, probability_arr, 1)))
+  
+def entropy_rate_scaling_ansatz(N, h_inf, gamma, c):
+  ## The ansatz from Schurmann and Grassberger 1995 for the
+  ## scaling of entropy rate with sequence length N
+  return h_inf + np.log2(N) / (N ** gamma) / np.abs(c)
+
+def compute_entropy(seq):
+  _, counts = np.unique(seq, return_counts=True)
+  counts = counts / np.sum(counts)
+  ent = -np.sum(counts * np.log2(counts))
+  return ent

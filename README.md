@@ -18,7 +18,7 @@ The rest of the necessary functionality is achieved through custom `keras` callb
 - `InfoBottleneckAnnealingCallback` handles the logarithmic annealing of the bottleneck strength $\beta$
 - `SaveCompressionMatricesCallback` saves the confusion matrices that represent the feature compression schemes learned during training
 
-Some use cases (e.g., [studying the decay of information in a double pendulum](https://arxiv.org/abs/2210.14220)) will require custom training loops, and we have included this in the code as well.
+Some use cases (e.g., [using a transformer to aggregate per-particle information in an amorphous material](https://arxiv.org/abs/2307.04755)) will require custom training loops, and we have included this in the code as well.
 
 ### Training example
 A full training run can be accomplished with the following:
