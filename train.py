@@ -276,8 +276,8 @@ def main():
     beta_series = np.float32(beta_series)
     kl_series = np.stack(loss_kl_series, 0)
     loss_series = np.float32(loss_infonce_series)
-    kl_series_validation = np.stack(loss_kl_series_validation, 0)
-    loss_series_validation = np.float32(loss_infonce_series_validation)
+    kl_series_validation = np.stack(loss_kl_validation_series, 0)
+    loss_series_validation = np.float32(loss_infonce_validation_series)
 
     kl_series /= np.log(2)  ## convert the KL values to bits
     kl_series_validation /= np.log(2)
@@ -289,7 +289,7 @@ def main():
   print('Finished training.')
 
   ## Plot the training trajectory in the info plane
-  visualization.save_distributed_info_plane(kl_series, loss_series_validation, artifact_outdir)
+  visualization.save_distributed_info_plane(kl_series_validation, loss_series_validation, artifact_outdir)
 
 
 if __name__ == '__main__':
