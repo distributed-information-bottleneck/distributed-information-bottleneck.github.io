@@ -18,17 +18,6 @@ import time
 
 import nodegam
 
-DATASETS = {
-    'boolean_circuit': fetch_boolean_circuit,
-    'double_pendulum': fetch_double_pendulum,
-    'mice_protein': fetch_mice_protein,
-    'microsoft': fetch_microsoft,
-    'credit': fetch_credit,
-    'support2': fetch_support2,
-    'wine': fetch_wine,
-    'bikeshare': fetch_bikeshare,
-}
-
 def fetch_boolean_circuit(**kwargs):
 
   generate_random_circuit = kwargs.get('boolean_random_circuit', False)
@@ -404,3 +393,14 @@ def fetch_wine(data_path='./data/'):
 def fetch_BIKESHARE(data_path='./data/'):
   dataset_dict = nodegam.data.DATASETS['BIKESHARE'](data_path)
   return 
+
+DATASETS = {
+    'boolean_circuit': fetch_boolean_circuit,
+    'double_pendulum': fetch_double_pendulum,
+    'mice_protein': fetch_mice_protein,
+    'microsoft': fetch_microsoft,
+    'credit': fetch_credit,
+    'support2': fetch_support2,
+    'wine': fetch_wine,
+    'bikeshare': fetch_bikeshare,
+}
