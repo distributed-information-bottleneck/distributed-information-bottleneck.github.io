@@ -390,7 +390,7 @@ def fetch_wine(data_path='./data/'):
   return 
 
 
-def fetch_BIKESHARE(data_path='./data/'):
+def fetch_bikeshare(data_path='./data/'):
   dataset_dict = nodegam.data.DATASETS['BIKESHARE'](data_path)
   return 
 

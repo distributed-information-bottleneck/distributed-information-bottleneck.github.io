@@ -91,6 +91,8 @@ def main():
   activation_fn = args.activation_fn
 
   artifact_outdir = args.artifact_outdir
+  if not os.path.exists(artifact_outdir):
+    os.makedirs(artifact_outdir)
   save_compression_matrices_frequency = args.save_compression_matrices_frequency
 
   ## Load the data
